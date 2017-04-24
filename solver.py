@@ -22,7 +22,7 @@ def solve(P, M, N, C, items, constraints):
 
   Return: a list of strings, corresponding to item names.
   """
-  itemscopy = items.copy()
+  itemscopy = list(items)
   items = set()
   for item in itemscopy:
     items.add(item)
@@ -59,7 +59,7 @@ def solve(P, M, N, C, items, constraints):
     for item2 in items:
       if item2[1] in class_constraint_map[item[1]]:
         item_constraint_map[item[0]].add(item2[0])
-  writeGraph(item_constraint_map, "problem_graphs/problem16.graph")
+  writeGraph(item_constraint_map, "problem_graphs/problem1.graph")
   solution = []
   print(min(items, key=lambda item: item[3]))
   iterations = 0
