@@ -18,14 +18,44 @@ def writeGraph(item_constraints, filename, id):
     file.write(toWrite)
   file.close()
 
-#####KNAPSACK SOLVER#####
-def knapsackSolver(items, P, M):
-  solution = []
-  knapsack_matrix = np.zeros((len(items), P, M))
+"""
+Knapsack Solver
+Takes in list of tuples as items; weight constraint as P, cost constraint as M
+Returns list of items that makes the most profit
+"""
+def knapsackSolver(itemList, P, M):
+  #increases index by 1 to fix indexing error
+  items = [('name', 'cls', 'weight', 'cost', 'value')] + itemList
+  knapsack_matrix = np.empty((len(items), P, M), dtype='object')
+  
+  #Initializing Subproblem Matrix
+  for w in range(P):
+    for c in range(M):
+      knapsack_matrix[0][w][c] = (0, [])
+  for i in range(len(items)):
+    for c in range(M):
+      knapsack_matrix[i][0][c] = (0, [])
   for i in range(len(items)):
     for w in range(P):
-      for c in range(M):
-        items[i][2]
+      knapsack_matrix[i][w][0] = (0, [])
+  #Done Initializing
+
+  #Starts solving
+  for i in range(1, len(items)):
+    itemName = items[i][0]
+    itemWeight = items[i][2]
+    itemCost = items[i][3]
+    for w in range(1, P):
+      for c in range(1, M):
+        takeValue = knapsack_matrix[i-1][w - itemWeight][c - itemCost][0] + items[i][4]
+        noTakeValue = knapsack_matrix[i-1][w][c][0]
+        if itemWeight > w or itemCost > c:
+          knapsack_matrix[i][w][c] = knapsack_matrix[i-1][w][c]
+        else if takeValue > noTakeValue:
+          knapsack_matrix[i][w][c] = (takeValue, knapsack_matrix[i-1][w - itemWeight][c - itemCost][1] + items[i][0] + [itemName])
+        else:
+          knapsack_matrix[i][w][c] = (noTakeValue, knapsack_matrix[i-1][w][c][1])
+  return knapsack_matrix[len(items)][P][M][1]
 
 def generateMatrices(id, P, M, N, C, items, constraints):
   """
