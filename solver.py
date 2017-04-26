@@ -3,8 +3,8 @@
 from __future__ import division
 import argparse
 import random
-import numpy as np
-import scipy.io as io 
+import pickle
+from multiprocessing import Queue
 
 """
 ===============================================================================
@@ -19,51 +19,48 @@ def writeGraph(item_constraints, filename, id):
   file.close()
 
 """
-Knapsack Solver
-Takes in list of tuples as items; weight constraint as P, cost constraint as M
-Returns list of items that makes the most profit
+Class Heuristics
+Takes in a Class C
 """
-def knapsackSolver(itemList, P, M):
-  #increases index by 1 to fix indexing error
-  items = [('name', 'cls', 'weight', 'cost', 'value')] + itemList
-  knapsack_matrix = np.empty((len(items), P, M), dtype='object')
-  
-  #Initializing Subproblem Matrix
-  for w in range(P):
-    for c in range(M):
-      knapsack_matrix[0][w][c] = (0, [])
-  for i in range(len(items)):
-    for c in range(M):
-      knapsack_matrix[i][0][c] = (0, [])
-  for i in range(len(items)):
-    for w in range(P):
-      knapsack_matrix[i][w][0] = (0, [])
-  #Done Initializing
 
-  #Starts solving
-  for i in range(1, len(items)):
-    itemName = items[i][0]
-    itemWeight = items[i][2]
-    itemCost = items[i][3]
-    for w in range(1, P):
-      for c in range(1, M):
-        takeValue = knapsack_matrix[i-1][w - itemWeight][c - itemCost][0] + items[i][4]
-        noTakeValue = knapsack_matrix[i-1][w][c][0]
-        if itemWeight > w or itemCost > c:
-          knapsack_matrix[i][w][c] = knapsack_matrix[i-1][w][c]
-        else if takeValue > noTakeValue:
-          knapsack_matrix[i][w][c] = (takeValue, knapsack_matrix[i-1][w - itemWeight][c - itemCost][1] + items[i][0] + [itemName])
-        else:
-          knapsack_matrix[i][w][c] = (noTakeValue, knapsack_matrix[i-1][w][c][1])
-  return knapsack_matrix[len(items)][P][M][1]
 
-def generateMatrices(id, P, M, N, C, items, constraints):
+"""
+Item Heuristics
+Takes in resale value as resale, the cost of the item as cost, the weight of the item as weight
+Returns {some heuristic value}
+"""
+def calcItemHeuristic(resale, cost, weight):
+  profit = resale - cost
+  return profit / weight + profit / cost
+
+"""
+Greedy Knapsack Solver
+Takes in list of tuples as items; weight constraint as P, cost constraint as M
+Returns list of items that makes approximately the most profit
+"""
+def greedyKnapsack(items, P, M):
+  solution = set()
+  itemHeuristics = Queue.PriorityQueue()
+  for i in range(len(items)):
+    itemHeuristics.put(calcItemHeuristic(items[i][4], items[i][3], items[i][2]), items[i])
+  for i in range(len(itemHeuristics)):
+    item = itemHeuristics.get()
+    if P == 0 or item[2] > P:
+      break
+    if M == 0 or item[3] > M:
+      break
+    solution.add(item[0])
+    P = P - item[2]
+    M = M - item[3]
+  return list(solution)
+
+def solve(id, P, M, N, C, items, constraints):
   """
   Write your amazing algorithm here.
 
   Return: a list of strings, corresponding to item names.
   """
-  graphDest = "problem_graphs/problem" + str(id) + ".mat"
+  graphDest = "problem_graphs/" + str(id) + ".pickle"
   itemscopy = list(items)
 
   for item in itemscopy:
@@ -74,48 +71,26 @@ def generateMatrices(id, P, M, N, C, items, constraints):
   for item in items:
     classes.add(item[1])
 
+  """
   # Adj list
-  class_constraint_map = dict()
-  for clas in classes:
-    class_constraint_map[clas] = set()
-
-  count = 0
-  for clas in classes:
-    
-    for constraint in constraints:
-      if clas in constraint:
-        incompatibles = constraint.copy()
-        incompatibles.remove(clas)
-        for incompatible in incompatibles:
-          class_constraint_map[clas].add(incompatible)
-    count += 1
+        class_constraint_map = dict()
+        for clas in classes:
+          class_constraint_map[clas] = set()
+      
+        count = 0
+        for clas in classes:
+          for constraint in constraints:
+            if clas in constraint:
+              incompatibles = constraint.copy()
+              incompatibles.remove(clas)
+              for incompatible in incompatibles:
+                class_constraint_map[clas].add(incompatible)
+          count += 1
   """
-  # Adj list items
-  item_constraint_map = dict()
-  for item in items:
-    item_constraint_map[item[0]] = set()
-
-  print(len(class_constraint_map), '***')
-  for item in items:
-    for item2 in items:
-      if item2[1] in class_constraint_map[item[1]]:
-        item_constraint_map[item[0]].add(item2[0])
-  writeGraph(item_constraint_map, "problem_graphs/problem3.graph")
-  solution = []
-  print(min(items, key=lambda item: item[3]))
-  """
-  iterations = 0
-  
-  item_matrix = np.zeros((len(items), len(items)))
-  for i in range(len(items)):
-    for j in range(i):
-      if items[j][1] in class_constraint_map[items[i][1]]:
-        item_matrix[i][j] = 1
-        item_matrix[j][i] = 1
-
-  io.savemat(graphDest, {"graph": item_matrix})
-
+  with open(graphDest, 'wb') as handle:
+    pickle.dump(class_constraint_map, handle, protocol=pickle.HIGHEST_PROTOCOL)
   return []
+  return greedyKnapsack(items, P, M)
 
 """
   while iterations < len(items) and len(items) > 0 and P >= min(items, key=lambda item: item[2])[2] and M >= min(items, key=lambda item: item[3])[3]:
@@ -178,5 +153,5 @@ if __name__ == "__main__":
   args = parser.parse_args()
 
   P, M, N, C, items, constraints = read_input(args.input_file)
-  items_chosen = generateMatrices(args.id, P, M, N, C, items, constraints)
+  items_chosen = solve(args.id, P, M, N, C, items, constraints)
   write_output(args.output_file, items_chosen)
