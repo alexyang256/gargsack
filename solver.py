@@ -4,7 +4,7 @@ from __future__ import division
 import argparse
 import random
 import pickle
-from multiprocessing import Queue
+import queue
 
 """
 ===============================================================================
@@ -16,7 +16,7 @@ def writeGraph(item_constraints, filename, id):
   for item, incompatible in item_constraints.items():
     toWrite = str((item, incompatible))+'\n'
     file.write(toWrite)
-  file.close()
+    file.close()
 
 """
 Class Heuristics
@@ -40,75 +40,83 @@ Returns list of items that makes approximately the most profit
 """
 def greedyKnapsack(items, P, M):
   solution = set()
-  itemHeuristics = Queue.PriorityQueue()
+  itemHeuristics = queue.PriorityQueue()
   for i in range(len(items)):
-    itemHeuristics.put(calcItemHeuristic(items[i][4], items[i][3], items[i][2]), items[i])
-  for i in range(len(itemHeuristics)):
+    item = items[i]
+    assert type(item) is tuple
+    itemHeuristics.put(items[i], calcItemHeuristic(items[i][4], items[i][3], items[i][2]))
+  for i in range(len(items)):
     item = itemHeuristics.get()
     if P == 0 or item[2] > P:
-      break
+      pass
     if M == 0 or item[3] > M:
-      break
+      pass
     solution.add(item[0])
     P = P - item[2]
     M = M - item[3]
   return list(solution)
 
-def solve(id, P, M, N, C, items, constraints):
+"""
+# Random greedy algorithm
+# Picks an independent (compatible) set of classes from problem id.
+"""
+def pickSet(id):
+  with open("problem_graphs/" + id + ".pickle", 'rb') as handle:
+    class_constraint_map = pickle.load(handle)
+    P, M, N, C, items, constraints = read_input("project_instances/problem" + str(id) + ".in")
+    itemscopy = list(items)
+
+    for item in itemscopy:
+      if item[4] - item[3] <= 0 or item[2] > P or item[3] > M:
+        items.remove(item)
+    
+    classes = dict()
+    for i, item in enumerate(items):
+      if item[1] in classes:
+        classes[item[1]].add(i)
+      else:
+        classes[item[1]] = {i}
+    
+    # Some features we might want to use
+    totalValue = lambda c: sum([items[item][4] for item in classes[c]])
+    totalWeight = lambda c: sum([items[item][2] for item in classes[c]])
+    totalCost = lambda c: sum([items[item][3] for item in classes[c]])
+    
+    def heuristic(c):
+      value = (totalValue(c) - totalCost(c)) / totalWeight(c)
+      return value
+
+    result = []
+    
+    # Greedy
+    remaining = len(classes)
+    while len(classes) > 0:
+      next_class = max(classes.keys(), key=lambda c: heuristic(c))
+      for neighbor in class_constraint_map[next_class]:
+        if neighbor in classes:
+          del classes[neighbor]
+      
+      class_items = classes[next_class]
+      del classes[next_class]
+      for it in class_items:
+        result.append(items[it])
+      assert len(classes) < remaining
+      remaining = len(classes)
+  return result
+
+
+def solve(id):
   """
   Write your amazing algorithm here.
 
   Return: a list of strings, corresponding to item names.
   """
-  graphDest = "problem_graphs/" + str(id) + ".pickle"
-  itemscopy = list(items)
+  P, M, N, C, items, constraints = read_input(generateFilePath(id))
+  indSet = pickSet(id)
+  return greedyKnapsack(indSet, P, M)
 
-  for item in itemscopy:
-    if item[4] - item[3] <= 0 or item[2] > P or item[3] > M:
-      items.remove(item)
-
-  classes = set()
-  for item in items:
-    classes.add(item[1])
-
-  """
-  # Adj list
-        class_constraint_map = dict()
-        for clas in classes:
-          class_constraint_map[clas] = set()
-      
-        count = 0
-        for clas in classes:
-          for constraint in constraints:
-            if clas in constraint:
-              incompatibles = constraint.copy()
-              incompatibles.remove(clas)
-              for incompatible in incompatibles:
-                class_constraint_map[clas].add(incompatible)
-          count += 1
-  """
-  with open(graphDest, 'wb') as handle:
-    pickle.dump(class_constraint_map, handle, protocol=pickle.HIGHEST_PROTOCOL)
-  return []
-  return greedyKnapsack(items, P, M)
-
-"""
-  while iterations < len(items) and len(items) > 0 and P >= min(items, key=lambda item: item[2])[2] and M >= min(items, key=lambda item: item[3])[3]:
-
-    item = max(items, key=lambda item: (item[4] - item[3])/max(0.01, item[2]))
-    while item[2] > P and item[3] > M:
-      items.remove(item)
-      item = max(items, key=lambda item: (item[4] - item[3])/max(0.01, item[2]))
-
-    solution.append(item[0])
-    P -= item[2]
-    M -= item[3]
-    for incompatible in item_constraint_map[item]:
-      if incompatible in items:
-        items.remove(incompatible)
-    iterations += 1
-  return solution
-  """
+def generateFilePath(id):
+  return "project_instances/problem" + str(id) + ".in"
 """
 ===============================================================================
   No need to change any code below this line.
@@ -152,6 +160,5 @@ if __name__ == "__main__":
   parser.add_argument("id", type=str)
   args = parser.parse_args()
 
-  P, M, N, C, items, constraints = read_input(args.input_file)
-  items_chosen = solve(args.id, P, M, N, C, items, constraints)
+  items_chosen = solve(args.id)
   write_output(args.output_file, items_chosen)
