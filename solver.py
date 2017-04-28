@@ -31,7 +31,7 @@ Returns {some heuristic value}
 """
 def calcItemHeuristic(resale, cost, weight):
   profit = resale - cost
-  return profit / weight + profit / cost
+  return profit / (weight + 1) + profit / (cost + 1)
 
 """
 Greedy Knapsack Solver
@@ -47,13 +47,11 @@ def greedyKnapsack(items, P, M):
     itemHeuristics.put(items[i], calcItemHeuristic(items[i][4], items[i][3], items[i][2]))
   for i in range(len(items)):
     item = itemHeuristics.get()
-    if P == 0 or item[2] > P:
-      pass
-    if M == 0 or item[3] > M:
-      pass
-    solution.add(item[0])
-    P = P - item[2]
-    M = M - item[3]
+    if P > 0 and item[2] < P:
+      if M > 0 and item[3] < M:
+        solution.add(item[0])
+        P = P - item[2]
+        M = M - item[3]
   return list(solution)
 
 """
@@ -61,7 +59,7 @@ def greedyKnapsack(items, P, M):
 # Picks an independent (compatible) set of classes from problem id.
 """
 def pickSet(id):
-  with open("problem_graphs/" + id + ".pickle", 'rb') as handle:
+  with open("problem_graphs/" + str(id) + ".pickle", 'rb') as handle:
     class_constraint_map = pickle.load(handle)
     P, M, N, C, items, constraints = read_input("project_instances/problem" + str(id) + ".in")
     itemscopy = list(items)
@@ -83,7 +81,7 @@ def pickSet(id):
     totalCost = lambda c: sum([items[item][3] for item in classes[c]])
     
     def heuristic(c):
-      value = (totalValue(c) - totalCost(c)) / totalWeight(c)
+      value = (totalValue(c) - totalCost(c)) / (totalWeight(c) + 1)
       return value
 
     result = []
@@ -104,6 +102,14 @@ def pickSet(id):
       remaining = len(classes)
   return result
 
+"""
+Scorer takes in id, and output_file
+"""
+def scorer(id):
+  item_map = pickle.load(open("item_map/" + str(id) + ".pickle", "rb"))
+  score = 0
+  return []
+
 
 def solve(id):
   """
@@ -112,8 +118,16 @@ def solve(id):
   Return: a list of strings, corresponding to item names.
   """
   P, M, N, C, items, constraints = read_input(generateFilePath(id))
+  """
+  To make the item dictionaries
+  item_dict = dict()
+  for item in items:
+    item_dict[item[0]] = item
+  pickle.dump(item_dict, open("item_map/" + str(id) + ".pickle", "wb"))
+  return [] 
+  """
   indSet = pickSet(id)
-  return greedyKnapsack(indSet, P, M)
+  write_output("outputs/problem" + str(id) + ".out", greedyKnapsack(indSet, P, M))
 
 def generateFilePath(id):
   return "project_instances/problem" + str(id) + ".in"
