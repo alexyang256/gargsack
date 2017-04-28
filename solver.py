@@ -40,6 +40,15 @@ Returns list of items that makes approximately the most profit
 """
 def greedyKnapsack(items, P, M):
   solution = set()
+  p70 = P * .7
+  m70 = M * .7
+  while P > p70 and M > m70:
+    random_item = random.choice(items)
+    if random_item[2] < P and random_item[3] < M:
+      solution.add(random_item)
+      P = P - random_item[2]
+      M = M - random_item[3]
+      items.remove(random_item)
   itemHeuristics = queue.PriorityQueue()
   for i in range(len(items)):
     item = items[i]
