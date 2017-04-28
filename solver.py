@@ -58,7 +58,7 @@ def greedyKnapsack(items, P, M):
 # Random greedy algorithm
 # Picks an independent (compatible) set of classes from problem id.
 """
-def pickSet(id):
+def pickSet(id, r=False):
   with open("problem_graphs/" + str(id) + ".pickle", 'rb') as handle:
     class_constraint_map = pickle.load(handle)
     P, M, N, C, items, constraints = read_input("project_instances/problem" + str(id) + ".in")
@@ -86,9 +86,20 @@ def pickSet(id):
 
     result = []
     
-    # Greedy
-    remaining = len(classes)
+    # Greedy random
+    numClasses = len(classes)
     while len(classes) > 0:
+      # Pick randomly for first 5%
+      while len(result) < 0.05 * numClasses:
+        next_class = random.choice(classes.keys())
+        for neighbor in class_constraint_map[next_class]:
+          if neighbor in classes:
+            del classes[neighbor]
+        class_items = classes[next_class]
+        del classes[next_class]
+        for it in class_items:
+          result.append(items[it])
+      # Greedily pick for the rest
       next_class = max(classes.keys(), key=lambda c: heuristic(c))
       for neighbor in class_constraint_map[next_class]:
         if neighbor in classes:
@@ -98,8 +109,7 @@ def pickSet(id):
       del classes[next_class]
       for it in class_items:
         result.append(items[it])
-      assert len(classes) < remaining
-      remaining = len(classes)
+  print("problem", str(id) + ": ", len(result), "classes picked.")
   return result
 
 """
