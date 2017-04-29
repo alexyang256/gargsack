@@ -124,10 +124,25 @@ def pickSet(id, r=False):
 """
 Scorer takes in id, and output_file
 """
-def scorer(id):
+def scorer(id, item_list):
+  P, M, N, C, items, constraints = read_input("project_instances/problem" + str(id) + ".in")
+  class_constraint_map = pickle.load(open("problem_graphs/"+str(id)+".pickle", "rb"))
   item_map = pickle.load(open("item_map/" + str(id) + ".pickle", "rb"))
+  incompatibles = set()
   score = 0
-  return []
+  weight = 0
+  cost = 0
+  for item in item_list:
+    itemObj = item_map[item]
+    clas = itemObj[1]
+    if clas in incompatibles or weight + itemObj[2] > P or cost + itemObj[3] > M:
+      return 0
+    score += itemObj[4]
+    weight += itemObj[2]
+    cost += itemObj[3]
+    for neighbor in class_constraint_map[clas]:
+      incompatibles.add(neighbor)
+  return score
 
 
 def solve(id):
@@ -136,6 +151,10 @@ def solve(id):
 
   Return: a list of strings, corresponding to item names.
   """
+  f = open("output/best_scores.txt")
+  bestScores = f.readlines()
+  f.close()
+
   P, M, N, C, items, constraints = read_input(generateFilePath(id))
   """
   To make the item dictionaries
@@ -146,7 +165,20 @@ def solve(id):
   return [] 
   """
   indSet = pickSet(id)
-  write_output("outputs/problem" + str(id) + ".out", greedyKnapsack(indSet, P, M))
+  picked_items = greedyKnapsack(indSet, P, M)
+  this_score = score(picked_items, id)
+  if this_score > float(bestScores[id]):
+    write_output("outputs/problem" + str(id) + ".out", greedyKnapsack(indSet, P, M))
+    print("got better score!", this_score, "for problem", id, "whose best score was previously", bestScores[id])
+    bestScores[id] = str(this_score)
+
+    f = open("output/best_scores.txt")
+    for score in bestScores:
+      f.write(score + "\n")
+    f.close()
+  else:
+    print("got worse score", this_score, "for problem", id, "whose best score was", bestScores[id])
+
 
 def generateFilePath(id):
   return "project_instances/problem" + str(id) + ".in"
@@ -194,4 +226,3 @@ if __name__ == "__main__":
   args = parser.parse_args()
 
   items_chosen = solve(args.id)
-  write_output(args.output_file, items_chosen)
