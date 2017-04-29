@@ -43,10 +43,10 @@ def greedyKnapsack2(items, P, M):
   solution = set()
   p70 = P * .7
   m70 = M * .7
-  while P > p70 and M > m70:
+  while P > p70 and M > m70 and len(items) > 0:
     random_item = random.choice(items)
     if random_item[2] < P and random_item[3] < M:
-      solution.add(random_item)
+      solution.add(random_item[0])
       P = P - random_item[2]
       M = M - random_item[3]
       items.remove(random_item)
@@ -56,7 +56,7 @@ def greedyKnapsack2(items, P, M):
     assert type(item) is tuple
     heuristic_map[items[i]]= calcItemHeuristic(items[i][4], items[i][3], items[i][2])
   for i in range(len(items)):
-    item = max(heuristic_map, key=heuristic_map.get())
+    item = max(heuristic_map.keys(), key=lambda i: heuristic_map[i])
     del heuristic_map[item]
     if P > 0 and item[2] < P:
       if M > 0 and item[3] < M:
@@ -124,7 +124,7 @@ def pickSet(id, r=False):
     totalCost = lambda c: sum([items[item][3] for item in classes[c]])
     
     def heuristic(c):
-      value = (totalValue(c) - totalCost(c)) / (totalWeight(c) + 1)
+      value = (totalValue(c) - totalCost(c)) / (totalCost(c) + 1)
       return value
 
     result = []
@@ -134,7 +134,7 @@ def pickSet(id, r=False):
     classesPicked = 0
     while len(classes) > 0:
       # Pick randomly for first 5%
-      while classesPicked < 10:
+      while classesPicked < 5:
         next_class = random.choice(list(classes.keys()))
         for neighbor in class_constraint_map[next_class]:
           if neighbor in classes:
@@ -203,10 +203,10 @@ def solve(id):
   return [] 
   """
   indSet = pickSet(id)
-  picked_items = greedyKnapsack(indSet, P, M)
+  picked_items = greedyKnapsack2(indSet, P, M)
   this_score = round(scorer(id, picked_items), 2)
   if this_score > float(bestScores[id-1]):
-    write_output("outputs/problem" + str(id) + ".out", greedyKnapsack(indSet, P, M))
+    write_output("outputs/problem" + str(id) + ".out", picked_items)
     print("got better score!", this_score, "for problem", id, "whose best score was previously", bestScores[id-1])
     bestScores[id-1] = str(this_score)+"\n"
 
