@@ -42,7 +42,7 @@ def recalcHeuristic(resale, cost, weight, P, M):
 def greedyKnapsack2(items, P, M):
   solution = set()
   p70 = P * .7
-  m70 = M * .7(
+  m70 = M * .7
     while P > p70 and M > m70:
       random_item = random.choice(items)
       if random_item[2] < P and random_item[3] < M:
