@@ -79,7 +79,7 @@ def greedyKnapsack(items, P, M):
   while P > p70 and M > m70 and len(items) > 0:
     random_item = random.choice(items)
     if random_item[2] < P and random_item[3] < M:
-      solution.add(random_item)
+      solution.add(random_item[0])
       P = P - random_item[2]
       M = M - random_item[3]
       items.remove(random_item)
@@ -134,7 +134,7 @@ def pickSet(id, r=False):
     classesPicked = 0
     while len(classes) > 0:
       # Pick randomly for first 5%
-      while classesPicked < 0.05 * numClasses:
+      while classesPicked < 10:
         next_class = random.choice(list(classes.keys()))
         for neighbor in class_constraint_map[next_class]:
           if neighbor in classes:
@@ -170,7 +170,7 @@ def scorer(id, item_list):
   weight = 0
   cost = 0
   for item in item_list:
-    itemObj = item_map[item[0]]
+    itemObj = item_map[item]
     clas = itemObj[1]
     if clas in incompatibles or weight + itemObj[2] > P or cost + itemObj[3] > M:
       return 0
@@ -179,7 +179,8 @@ def scorer(id, item_list):
     cost += itemObj[3]
     for neighbor in class_constraint_map[clas]:
       incompatibles.add(neighbor)
-  return score
+  print("value of items:", score)
+  return score + M - cost
 
 
 def solve(id):
@@ -203,15 +204,15 @@ def solve(id):
   """
   indSet = pickSet(id)
   picked_items = greedyKnapsack(indSet, P, M)
-  this_score = scorer(id, picked_items)
+  this_score = round(scorer(id, picked_items), 2)
   if this_score > float(bestScores[id-1]):
     write_output("outputs/problem" + str(id) + ".out", greedyKnapsack(indSet, P, M))
     print("got better score!", this_score, "for problem", id, "whose best score was previously", bestScores[id-1])
-    bestScores[id-1] = str(this_score)
+    bestScores[id-1] = str(this_score)+"\n"
 
-    f = open("outputs/best_scores.txt")
+    f = open("outputs/best_scores.txt", 'w')
     for score in bestScores:
-      f.write(score + "\n")
+      f.write(score)
     f.close()
   else:
     print("got worse score", this_score, "for problem", id, "whose best score was", bestScores[id-1])
