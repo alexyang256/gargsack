@@ -33,6 +33,40 @@ def calcItemHeuristic(resale, cost, weight):
   profit = resale - cost
   return profit / (weight + 1) + profit / (cost + 1)
 
+def recalcHeuristic(resale, cost, weight, P, M):
+  profit = resale - cost
+  cost_ratio = cost / M
+  weight_ratio = weight / P
+  return profit / (weight + 1) + profit / (cost + 1) - cost_ratio - weight_ratio
+
+def greedyKnapsack2(items, P, M):
+  solution = set()
+  p70 = P * .7
+  m70 = M * .7(
+    while P > p70 and M > m70:
+      random_item = random.choice(items)
+      if random_item[2] < P and random_item[3] < M:
+        solution.add(random_item)
+        P = P - random_item[2]
+        M = M - random_item[3]
+        items.remove(random_item)
+    heuristic_map = dict()
+    for i in range(len(items)):
+      item = items[i]
+      assert type(item) is tuple
+      heuristic_map[items[i]]= calcItemHeuristic(items[i][4], items[i][3], items[i][2])
+    for i in range(len(items)):
+      item = max(heuristic_map, key=heuristic_map.get())
+      del heuristic_map[item]
+      if P > 0 and item[2] < P:
+        if M > 0 and item[3] < M:
+          solution.add(item[0])
+          P = P - item[2]
+          M = M - item[3]
+          for item2 in heuristic_map:
+            heuristic_map[item2] = recalcHeuristic(item2[4], item2[3], item2[2], P, M)
+  return list(solution)  
+
 """
 Greedy Knapsack Solver
 Takes in list of tuples as items; weight constraint as P, cost constraint as M
