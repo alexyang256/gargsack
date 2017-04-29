@@ -43,28 +43,28 @@ def greedyKnapsack2(items, P, M):
   solution = set()
   p70 = P * .7
   m70 = M * .7
-    while P > p70 and M > m70:
-      random_item = random.choice(items)
-      if random_item[2] < P and random_item[3] < M:
-        solution.add(random_item)
-        P = P - random_item[2]
-        M = M - random_item[3]
-        items.remove(random_item)
-    heuristic_map = dict()
-    for i in range(len(items)):
-      item = items[i]
-      assert type(item) is tuple
-      heuristic_map[items[i]]= calcItemHeuristic(items[i][4], items[i][3], items[i][2])
-    for i in range(len(items)):
-      item = max(heuristic_map, key=heuristic_map.get())
-      del heuristic_map[item]
-      if P > 0 and item[2] < P:
-        if M > 0 and item[3] < M:
-          solution.add(item[0])
-          P = P - item[2]
-          M = M - item[3]
-          for item2 in heuristic_map:
-            heuristic_map[item2] = recalcHeuristic(item2[4], item2[3], item2[2], P, M)
+  while P > p70 and M > m70:
+    random_item = random.choice(items)
+    if random_item[2] < P and random_item[3] < M:
+      solution.add(random_item)
+      P = P - random_item[2]
+      M = M - random_item[3]
+      items.remove(random_item)
+  heuristic_map = dict()
+  for i in range(len(items)):
+    item = items[i]
+    assert type(item) is tuple
+    heuristic_map[items[i]]= calcItemHeuristic(items[i][4], items[i][3], items[i][2])
+  for i in range(len(items)):
+    item = max(heuristic_map, key=heuristic_map.get())
+    del heuristic_map[item]
+    if P > 0 and item[2] < P:
+      if M > 0 and item[3] < M:
+        solution.add(item[0])
+        P = P - item[2]
+        M = M - item[3]
+        for item2 in heuristic_map:
+          heuristic_map[item2] = recalcHeuristic(item2[4], item2[3], item2[2], P, M)
   return list(solution)  
 
 """
@@ -76,7 +76,7 @@ def greedyKnapsack(items, P, M):
   solution = set()
   p70 = P * .7
   m70 = M * .7
-  while P > p70 and M > m70:
+  while P > p70 and M > m70 and len(items) > 0:
     random_item = random.choice(items)
     if random_item[2] < P and random_item[3] < M:
       solution.add(random_item)
@@ -131,10 +131,11 @@ def pickSet(id, r=False):
     
     # Greedy random
     numClasses = len(classes)
+    classesPicked = 0
     while len(classes) > 0:
       # Pick randomly for first 5%
-      while len(result) < 0.05 * numClasses:
-        next_class = random.choice(classes.keys())
+      while classesPicked < 0.05 * numClasses:
+        next_class = random.choice(list(classes.keys()))
         for neighbor in class_constraint_map[next_class]:
           if neighbor in classes:
             del classes[neighbor]
@@ -142,6 +143,7 @@ def pickSet(id, r=False):
         del classes[next_class]
         for it in class_items:
           result.append(items[it])
+        classesPicked += 1
       # Greedily pick for the rest
       next_class = max(classes.keys(), key=lambda c: heuristic(c))
       for neighbor in class_constraint_map[next_class]:
@@ -152,7 +154,8 @@ def pickSet(id, r=False):
       del classes[next_class]
       for it in class_items:
         result.append(items[it])
-  print("problem", str(id) + ": ", len(result), "classes picked.")
+      classesPicked += 1
+  print("problem", str(id) + ": ", classesPicked, "classes picked.")
   return result
 
 """
@@ -167,7 +170,7 @@ def scorer(id, item_list):
   weight = 0
   cost = 0
   for item in item_list:
-    itemObj = item_map[item]
+    itemObj = item_map[item[0]]
     clas = itemObj[1]
     if clas in incompatibles or weight + itemObj[2] > P or cost + itemObj[3] > M:
       return 0
@@ -185,7 +188,7 @@ def solve(id):
 
   Return: a list of strings, corresponding to item names.
   """
-  f = open("output/best_scores.txt")
+  f = open("outputs/best_scores.txt")
   bestScores = f.readlines()
   f.close()
 
@@ -200,18 +203,18 @@ def solve(id):
   """
   indSet = pickSet(id)
   picked_items = greedyKnapsack(indSet, P, M)
-  this_score = score(picked_items, id)
-  if this_score > float(bestScores[id]):
+  this_score = scorer(id, picked_items)
+  if this_score > float(bestScores[id-1]):
     write_output("outputs/problem" + str(id) + ".out", greedyKnapsack(indSet, P, M))
-    print("got better score!", this_score, "for problem", id, "whose best score was previously", bestScores[id])
-    bestScores[id] = str(this_score)
+    print("got better score!", this_score, "for problem", id, "whose best score was previously", bestScores[id-1])
+    bestScores[id-1] = str(this_score)
 
-    f = open("output/best_scores.txt")
+    f = open("outputs/best_scores.txt")
     for score in bestScores:
       f.write(score + "\n")
     f.close()
   else:
-    print("got worse score", this_score, "for problem", id, "whose best score was", bestScores[id])
+    print("got worse score", this_score, "for problem", id, "whose best score was", bestScores[id-1])
 
 
 def generateFilePath(id):
