@@ -11,18 +11,6 @@ import queue
   Please complete the following function.
 ===============================================================================
 """
-def writeGraph(item_constraints, filename, id):
-  file = open(filename, 'w')
-  for item, incompatible in item_constraints.items():
-    toWrite = str((item, incompatible))+'\n'
-    file.write(toWrite)
-    file.close()
-
-"""
-Class Heuristics
-Takes in a Class C
-"""
-
 
 """
 Item Heuristics
@@ -39,6 +27,12 @@ def recalcHeuristic(resale, cost, weight, P, M):
   weight_ratio = weight / P
   return profit / (weight + 1) + profit / (cost + 1) - cost_ratio - weight_ratio
 
+"""
+Random Greedy Knapsack Solver 2
+Takes in list of tuples as items; weight constraint as P, cost constraint as M
+Returns list of items that makes approximately the most profit
+Uses recalcHeuristic
+"""
 def greedyKnapsack2(items, P, M):
   solution = set()
   p70 = P * .7
@@ -68,9 +62,10 @@ def greedyKnapsack2(items, P, M):
   return list(solution)  
 
 """
-Greedy Knapsack Solver
+Greedy Knapsack Solver 1
 Takes in list of tuples as items; weight constraint as P, cost constraint as M
 Returns list of items that makes approximately the most profit
+Uses calcItemHeuristic only
 """
 def greedyKnapsack(items, P, M):
   solution = set()
@@ -194,14 +189,6 @@ def solve(id):
   f.close()
 
   P, M, N, C, items, constraints = read_input(generateFilePath(id))
-  """
-  To make the item dictionaries
-  item_dict = dict()
-  for item in items:
-    item_dict[item[0]] = item
-  pickle.dump(item_dict, open("item_map/" + str(id) + ".pickle", "wb"))
-  return [] 
-  """
   indSet = pickSet(id)
   picked_items = greedyKnapsack2(indSet, P, M)
   this_score = round(scorer(id, picked_items), 2)
@@ -222,7 +209,9 @@ def generateFilePath(id):
   return "project_instances/problem" + str(id) + ".in"
 """
 ===============================================================================
-  No need to change any code below this line.
+Read Input
+
+Write Output
 ===============================================================================
 """
 
@@ -254,13 +243,3 @@ def write_output(filename, items_chosen):
   with open(filename, "w") as f:
     for i in items_chosen:
       f.write("{0}\n".format(i))
-
-if __name__ == "__main__":
-
-  parser = argparse.ArgumentParser(description="PickItems solver.")
-  parser.add_argument("input_file", type=str, help="____.in")
-  parser.add_argument("output_file", type=str, help="____.out")
-  parser.add_argument("id", type=str)
-  args = parser.parse_args()
-
-  items_chosen = solve(args.id)
